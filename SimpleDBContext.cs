@@ -26,6 +26,18 @@ namespace SimpleDBAdmin
         public SimpleDBItem( IEnumerable<KeyValuePair<string, string>> Attributes ) : base( Attributes )
         {
         }
+
+        public IEnumerable<string> this[string key]
+        {
+            get
+            {
+                return
+                    from m in this
+                    where m.Key.Equals( key, StringComparison.OrdinalIgnoreCase )
+                    orderby m.Key, m.Value
+                    select m.Value;
+            }
+        }
     }
 
     public class SimpleDBContext

@@ -33,6 +33,7 @@
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.leftPaneTable = new System.Windows.Forms.TableLayoutPanel();
             this.domainList = new System.Windows.Forms.TreeView();
+            this.domainListImages = new System.Windows.Forms.ImageList(this.components);
             this.CreateButton = new System.Windows.Forms.Button();
             this.leftPaneTopButtonTable = new System.Windows.Forms.TableLayoutPanel();
             this.connectButton = new System.Windows.Forms.Button();
@@ -88,7 +89,7 @@
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.parentTable = new System.Windows.Forms.TableLayoutPanel();
-            this.domainListImages = new System.Windows.Forms.ImageList(this.components);
+            this.exportDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -157,6 +158,13 @@
             this.domainList.Size = new System.Drawing.Size(200, 395);
             this.domainList.TabIndex = 20;
             this.domainList.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.domainList_SelectedIndexChanged);
+            // 
+            // domainListImages
+            // 
+            this.domainListImages.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("domainListImages.ImageStream")));
+            this.domainListImages.TransparentColor = System.Drawing.Color.Transparent;
+            this.domainListImages.Images.SetKeyName(0, "database.png");
+            this.domainListImages.Images.SetKeyName(1, "attributeHierarchy.png");
             // 
             // CreateButton
             // 
@@ -710,6 +718,7 @@
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.createDomainToolStripMenuItem,
+            this.exportDomainToolStripMenuItem,
             this.refreshDomainListToolStripMenuItem,
             this.toolStripSeparator1,
             this.saveAWSPublicKeysToolStripMenuItem,
@@ -789,7 +798,7 @@
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
             this.aboutToolStripMenuItem.Text = "About";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
@@ -807,12 +816,12 @@
             this.parentTable.Size = new System.Drawing.Size(618, 487);
             this.parentTable.TabIndex = 2;
             // 
-            // domainListImages
+            // exportDomainToolStripMenuItem
             // 
-            this.domainListImages.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("domainListImages.ImageStream")));
-            this.domainListImages.TransparentColor = System.Drawing.Color.Transparent;
-            this.domainListImages.Images.SetKeyName(0, "database.png");
-            this.domainListImages.Images.SetKeyName(1, "attributeHierarchy.png");
+            this.exportDomainToolStripMenuItem.Name = "exportDomainToolStripMenuItem";
+            this.exportDomainToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
+            this.exportDomainToolStripMenuItem.Text = "Export Domain";
+            this.exportDomainToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToolStripMenuItem_Click);
             // 
             // Main
             // 
@@ -912,6 +921,7 @@
         private System.Windows.Forms.Button refreshButton;
         private System.Windows.Forms.ToolStripMenuItem refreshDomainListToolStripMenuItem;
         private System.Windows.Forms.ImageList domainListImages;
+        private System.Windows.Forms.ToolStripMenuItem exportDomainToolStripMenuItem;
 
     }
 }

@@ -143,6 +143,7 @@ namespace SimpleDBAdmin
 
             // The name of the file is a SHA2 has of the public key and the service url
             var hash = HashSha2( this.Credentials.Key + this.Credentials.ServiceUrl );
+            hash = new string( hash.Where( x => !Path.GetInvalidFileNameChars().Contains( x ) ).ToArray() );
 
             // Write the file
             using( var w = new StreamWriter( hash + ".xml" ) )
@@ -227,9 +228,10 @@ namespace SimpleDBAdmin
             }
         }
 
-        private void LoadDomainSchema( AwsCredentials c )
+        private void LoadDomainSchema( AwsCredentials aws )
         {
-            var hash = HashSha2( c.Key + c.ServiceUrl );
+            var hash = HashSha2( aws.Key + aws.ServiceUrl );
+            hash = new string( hash.Where( x => !Path.GetInvalidFileNameChars().Contains( x ) ).ToArray() );
 
             if( !File.Exists( hash + ".xml" ) ) return;
             using( var r = new StreamReader( hash + ".xml" ) )
@@ -318,7 +320,7 @@ namespace SimpleDBAdmin
                     node.Nodes.Add( c, c, 1 );
                     insertNeedsUpdated = true;
                 }
-                
+
                 // If the domain list needed updated, the insert grid does too
                 if( insertNeedsUpdated )
                 {
@@ -326,18 +328,77 @@ namespace SimpleDBAdmin
                 }
             }
 
-            // Add the columns to the result grid
-            data.Columns.Add( "Name" );
-            data.Columns.AddRange( ( from c in columns select new DataColumn( c ) ).ToArray() );
-
-            // Add the rows to the result grid
+            var attrCount = new Dictionary<string, int>();
             foreach( var i in Items )
             {
-                var row = data.NewRow();
-                row["Name"] = i.Name;
-                foreach( var a in i )
+                foreach( var a in i.Select( m => m.Key ).Distinct() )
                 {
-                    row[a.Key] = a.Value;
+                    var count = i.Count( m => m.Key.Equals( a, StringComparison.OrdinalIgnoreCase ) );
+                    if( attrCount.ContainsKey( a ) )
+                    {
+                        if( count > attrCount[a] )
+                        {
+                            attrCount[a] = count;
+                        }
+                    }
+                    else
+                    {
+                        attrCount.Add( a, count );
+                    }
+                }
+            }
+
+            // Add the columns to the result grid
+            data.Columns.Add( new DataColumn() );   // The hidden name column
+
+            // The DataTable class does not allow multiple columns with
+            // the same name. SimpleDB domains do allow multiple attributes
+            // with the same name.
+            // Find the attributes that have more than one instance in all
+            // the items. They need to have a number appended to the column
+            // name.
+            foreach( var key in attrCount.Keys.OrderBy( m => m.ToLower() ) )
+            {
+                var count = attrCount[key];
+                if( count == 1 )
+                {
+                    var column = new DataColumn( key );
+                    column.ExtendedProperties.Add( "AttributeName", key );
+                    column.MaxLength = 1024;
+                    data.Columns.Add( column );
+                }
+                else
+                {
+                    for( var i = 1 ; i <= count ; i++ )
+                    {
+                        var column = new DataColumn( key + " (" + i + ")" );
+                        column.ExtendedProperties.Add( "AttributeName", key );
+                        column.MaxLength = 1024;
+                        data.Columns.Add( column );
+                    }
+                }
+            }
+
+            // Add the rows to the result grid
+            foreach( var item in Items )
+            {
+                var row = data.NewRow();
+                row[0] = item.Name;
+                foreach( var key in attrCount.Keys )
+                {
+                    var values = item[key].ToArray();
+
+                    if( attrCount[key] == 1 )
+                    {
+                        row[key] = values[0];
+                    }
+                    else
+                    {
+                        for( var i = 1 ; i <= values.Length ; i++ )
+                        {
+                            row[key + " (" + i + ")"] = values[i - 1];
+                        }
+                    }
                 }
                 data.Rows.Add( row );
             }
@@ -346,8 +407,8 @@ namespace SimpleDBAdmin
             this.resultGrid.DataSource = data;
 
             // Hide the Name column
-            if( this.resultGrid.Columns["Name"] != null )
-                this.resultGrid.Columns["Name"].Visible = false;
+            if( this.resultGrid.Columns[0] != null )
+                this.resultGrid.Columns[0].Visible = false;
 
             // Make the Results table visible
             this.Tabs.SelectedTab = this.tabPage3;
@@ -572,18 +633,30 @@ namespace SimpleDBAdmin
 
         private void resultGrid_CellValueChanged( object sender, DataGridViewCellEventArgs e )
         {
+            var dataSource = this.resultGrid.DataSource as DataTable;
+            if( dataSource == null ) return;
+
             this.UpdateRowByName
             (
-                this.resultGrid.Rows[e.RowIndex].Cells["Name"].Value.ToString(),
+                this.resultGrid.Rows[e.RowIndex].Cells[0].Value.ToString(),
                 new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string,string>
                     (
-                        this.resultGrid.Columns[e.ColumnIndex].HeaderText,
+                        dataSource.Columns[e.ColumnIndex].ExtendedProperties["AttributeName"].ToString(),
                         this.resultGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()
                     )
                 }
             );
+        }
+
+        private void exportDomainToolStripMenuItem_Click( object sender, EventArgs e )
+        {
+            new ExportDialog( "Test" )
+            {
+                StartPosition = FormStartPosition.CenterParent
+            }
+            .ShowDialog();
         }
         #endregion
 
