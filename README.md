@@ -14,3 +14,5 @@ SimpleDBAdmin will allow you to:
   * Insert new rows into a SimpleDB domain with arbitrary attributes and values.
   
   * Save your credentials in a secure way for quick access.
+
+  * Export your domains to a delimited text file.
