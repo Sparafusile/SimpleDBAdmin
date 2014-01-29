@@ -36,6 +36,7 @@
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.exportButton = new System.Windows.Forms.Button();
             this.cancelButton = new System.Windows.Forms.Button();
+            this.progressBar = new System.Windows.Forms.ProgressBar();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
@@ -44,9 +45,8 @@
             this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.progressBar1 = new System.Windows.Forms.ProgressBar();
+            this.textQualifier = new System.Windows.Forms.TextBox();
+            this.escapeCharacter = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.SuspendLayout();
@@ -113,7 +113,7 @@
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel2.Controls.Add(this.exportButton, 0, 0);
             this.tableLayoutPanel2.Controls.Add(this.cancelButton, 1, 0);
-            this.tableLayoutPanel2.Controls.Add(this.progressBar1, 0, 1);
+            this.tableLayoutPanel2.Controls.Add(this.progressBar, 0, 1);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 363);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
@@ -131,7 +131,7 @@
             this.exportButton.Margin = new System.Windows.Forms.Padding(10);
             this.exportButton.Name = "exportButton";
             this.exportButton.Size = new System.Drawing.Size(232, 35);
-            this.exportButton.TabIndex = 0;
+            this.exportButton.TabIndex = 6;
             this.exportButton.Text = "Export";
             this.exportButton.UseVisualStyleBackColor = true;
             this.exportButton.Click += new System.EventHandler(this.exportButton_Click);
@@ -144,10 +144,19 @@
             this.cancelButton.Margin = new System.Windows.Forms.Padding(10);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(233, 35);
-            this.cancelButton.TabIndex = 1;
+            this.cancelButton.TabIndex = 7;
             this.cancelButton.Text = "Cancel";
             this.cancelButton.UseVisualStyleBackColor = true;
             this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
+            // 
+            // progressBar
+            // 
+            this.tableLayoutPanel2.SetColumnSpan(this.progressBar, 2);
+            this.progressBar.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.progressBar.Location = new System.Drawing.Point(3, 58);
+            this.progressBar.Name = "progressBar";
+            this.progressBar.Size = new System.Drawing.Size(499, 14);
+            this.progressBar.TabIndex = 2;
             // 
             // label3
             // 
@@ -181,14 +190,13 @@
             // rowDelimiter
             // 
             this.rowDelimiter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.rowDelimiter.FormattingEnabled = true;
             this.rowDelimiter.Items.AddRange(new object[] {
             "Windows",
-            "Macintosh"});
+            "Unix"});
             this.rowDelimiter.Location = new System.Drawing.Point(67, 216);
             this.rowDelimiter.Name = "rowDelimiter";
             this.rowDelimiter.Size = new System.Drawing.Size(158, 21);
-            this.rowDelimiter.TabIndex = 7;
+            this.rowDelimiter.TabIndex = 2;
             // 
             // columnDelimiter
             // 
@@ -200,7 +208,8 @@
             this.columnDelimiter.Location = new System.Drawing.Point(325, 216);
             this.columnDelimiter.Name = "columnDelimiter";
             this.columnDelimiter.Size = new System.Drawing.Size(158, 21);
-            this.columnDelimiter.TabIndex = 8;
+            this.columnDelimiter.TabIndex = 3;
+            this.columnDelimiter.Text = "Comma";
             // 
             // label6
             // 
@@ -232,42 +241,33 @@
             this.label8.TabIndex = 11;
             this.label8.Text = "Escape";
             // 
-            // textBox1
+            // textQualifier
             // 
-            this.textBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox1.Location = new System.Drawing.Point(90, 316);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(135, 24);
-            this.textBox1.TabIndex = 12;
-            this.textBox1.Text = "\"";
-            this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.textQualifier.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.textQualifier.Location = new System.Drawing.Point(90, 316);
+            this.textQualifier.Name = "textQualifier";
+            this.textQualifier.Size = new System.Drawing.Size(135, 24);
+            this.textQualifier.TabIndex = 4;
+            this.textQualifier.Text = "\"";
+            this.textQualifier.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // textBox2
+            // escapeCharacter
             // 
-            this.textBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox2.Location = new System.Drawing.Point(321, 316);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(162, 24);
-            this.textBox2.TabIndex = 13;
-            this.textBox2.Text = "\\";
-            this.textBox2.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // progressBar1
-            // 
-            this.tableLayoutPanel2.SetColumnSpan(this.progressBar1, 2);
-            this.progressBar1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.progressBar1.Location = new System.Drawing.Point(3, 58);
-            this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(499, 14);
-            this.progressBar1.TabIndex = 2;
+            this.escapeCharacter.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.escapeCharacter.Location = new System.Drawing.Point(321, 316);
+            this.escapeCharacter.Name = "escapeCharacter";
+            this.escapeCharacter.Size = new System.Drawing.Size(162, 24);
+            this.escapeCharacter.TabIndex = 5;
+            this.escapeCharacter.Text = "\"";
+            this.escapeCharacter.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // ExportDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(505, 438);
-            this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.escapeCharacter);
+            this.Controls.Add(this.textQualifier);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.label6);
@@ -308,8 +308,8 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.TextBox textBox2;
-        private System.Windows.Forms.ProgressBar progressBar1;
+        private System.Windows.Forms.TextBox textQualifier;
+        private System.Windows.Forms.TextBox escapeCharacter;
+        public System.Windows.Forms.ProgressBar progressBar;
     }
 }

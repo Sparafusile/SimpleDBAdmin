@@ -19,9 +19,21 @@ namespace SimpleDBAdmin
         public long ItemNamesSizeBytes { get; set; }
     }
 
+    [Serializable]
+    public struct KeyValuePair<K, V>
+    {
+        public K Key { get; set; }
+        public V Value { get; set; }
+    }
+
+    [Serializable]
     public class SimpleDBItem : List<KeyValuePair<string, string>>
     {
         public string Name { get; set; }
+
+        public SimpleDBItem()
+        {
+        }
 
         public SimpleDBItem( IEnumerable<KeyValuePair<string, string>> Attributes ) : base( Attributes )
         {
@@ -37,6 +49,16 @@ namespace SimpleDBAdmin
                     orderby m.Key, m.Value
                     select m.Value;
             }
+        }
+
+        public Dictionary<string, int> GetAttributeCounts()
+        {
+            return
+            (
+                from a in this.Select( m => m.Key )
+                group a by a into g select g
+            )
+            .ToDictionary( g => g.Key, g => g.Count() );
         }
     }
 
@@ -164,11 +186,10 @@ namespace SimpleDBAdmin
             } );
         }
 
-        public List<SimpleDBItem> Select( string query )
+        public IEnumerable<SimpleDBItem> Select( string query )
         {
             string nextToken = null;
             var random = new Random();
-            var items = new List<Item>();
 
             do
             {
@@ -186,7 +207,25 @@ namespace SimpleDBAdmin
                     switch( r.HttpStatusCode )
                     {
                         case System.Net.HttpStatusCode.OK:
-                            items.AddRange( r.Items );
+                            // Convert the items to Key/Value pairs.
+                            // There will be multiple entries with the
+                            // same key so a dictionary wont work.
+                            foreach( var i in r.Items )
+                            {
+                                yield return new SimpleDBItem
+                                (
+                                    from a in i.Attributes
+                                    select new KeyValuePair<string, string>
+                                    {
+                                        Key = a.Name,
+                                        Value = a.Value
+                                    }
+                                )
+                                {
+                                    Name = i.Name
+                                };
+                            }
+
                             nextToken = r.NextToken;
                             retry = false;
                             break;
@@ -200,33 +239,13 @@ namespace SimpleDBAdmin
 
                         default:
                             // Process 4xx (Client) error
-                            retry = false;
-                            break;
+                            // Cancel the IEnumerable loop
+                            yield break;
                     }
                 }
                 while( retry && retryCount < MaxRetryCount );
             }
             while( !string.IsNullOrEmpty( nextToken ) );
-
-            // Convert the items to Key/Value pairs.
-            // There will be multiple entries with the
-            // same key so a dictionary wont work.
-            return
-            (
-                from i in items
-                select new SimpleDBItem
-                (
-                    from a in i.Attributes
-                    select new KeyValuePair<string, string>
-                    (
-                        a.Name, a.Value
-                    )
-                )
-                {
-                    Name = i.Name
-                }
-            )
-            .ToList();
         }
     }
 }

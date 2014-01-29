@@ -4,12 +4,13 @@ namespace SimpleDBAdmin
 {
     public partial class ExportDialog : Form
     {
-        private string Domain { get; set; }
+        private Main Main { get; set; }
 
-        public ExportDialog( string Domain )
+        public ExportDialog( Main Main )
         {
             InitializeComponent();
-            this.Domain = Domain;
+            this.Main = Main;
+            this.rowDelimiter.SelectedIndex = 0;
         }
 
         private void browseButton_Click( object sender, System.EventArgs e )
@@ -26,6 +27,46 @@ namespace SimpleDBAdmin
 
         private void exportButton_Click( object sender, System.EventArgs e )
         {
+            string rowDelim, colDelim;
+            switch( this.rowDelimiter.Text )
+            {
+                case "Unix":
+                    rowDelim = "\n";
+                    break;
+
+                default:
+                    rowDelim = "\r\n";
+                    break;
+            }
+
+            switch( this.columnDelimiter.Text )
+            {
+                case "Comma":
+                    colDelim = ",";
+                    break;
+
+                case "Tab":
+                    colDelim = "\t";
+                    break;
+
+                case "Pipe":
+                    colDelim = "|";
+                    break;
+
+                default:
+                    colDelim = this.columnDelimiter.Text;
+                    break;
+            }
+
+            this.Main.ExportDomain
+            (
+                this.targetFile.Text,
+                rowDelim,
+                colDelim,
+                this.textQualifier.Text,
+                this.escapeCharacter.Text
+            );
+
             this.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.Close();
         }

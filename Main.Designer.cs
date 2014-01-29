@@ -79,6 +79,7 @@
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.createDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshDomainListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.saveAWSPublicKeysToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -89,7 +90,6 @@
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.parentTable = new System.Windows.Forms.TableLayoutPanel();
-            this.exportDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -735,6 +735,13 @@
             this.createDomainToolStripMenuItem.Text = "Create Domain";
             this.createDomainToolStripMenuItem.Click += new System.EventHandler(this.CreateButton_Click);
             // 
+            // exportDomainToolStripMenuItem
+            // 
+            this.exportDomainToolStripMenuItem.Name = "exportDomainToolStripMenuItem";
+            this.exportDomainToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
+            this.exportDomainToolStripMenuItem.Text = "Export Domain to File";
+            this.exportDomainToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToolStripMenuItem_Click);
+            // 
             // refreshDomainListToolStripMenuItem
             // 
             this.refreshDomainListToolStripMenuItem.Name = "refreshDomainListToolStripMenuItem";
@@ -815,13 +822,6 @@
             this.parentTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.parentTable.Size = new System.Drawing.Size(618, 487);
             this.parentTable.TabIndex = 2;
-            // 
-            // exportDomainToolStripMenuItem
-            // 
-            this.exportDomainToolStripMenuItem.Name = "exportDomainToolStripMenuItem";
-            this.exportDomainToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
-            this.exportDomainToolStripMenuItem.Text = "Export Domain";
-            this.exportDomainToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToolStripMenuItem_Click);
             // 
             // Main
             // 

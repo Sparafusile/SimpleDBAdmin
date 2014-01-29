@@ -81,6 +81,7 @@
     <Compile Include="ExportDialog.Designer.cs">
       <DependentUpon>ExportDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="ImportExport.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>

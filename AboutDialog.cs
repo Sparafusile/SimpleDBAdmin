@@ -8,6 +8,8 @@ namespace SimpleDBAdmin
         public AboutDialog()
         {
             InitializeComponent();
+
+            this.lblVersion.Text = @"Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
         private void button1_Click( object sender, EventArgs e )

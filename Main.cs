@@ -29,6 +29,8 @@ namespace SimpleDBAdmin
 
         private DomainFilterDialog FilterDialog { get; set; }
 
+        private ExportDialog ExportDialog { get; set; }
+
         private TreeNode HiddenNodes { get; set; }
 
         private SimpleDBContext db { get; set; }
@@ -39,6 +41,10 @@ namespace SimpleDBAdmin
             InitializeComponent();
             this.LoadSettings();
             this.FilterDialog = new DomainFilterDialog
+            {
+                StartPosition = FormStartPosition.CenterParent
+            };
+            this.ExportDialog = new ExportDialog( this )
             {
                 StartPosition = FormStartPosition.CenterParent
             };
@@ -256,20 +262,8 @@ namespace SimpleDBAdmin
         {
             if( this.db == null ) return;
 
-            if( !this.DomainMetaData.ContainsKey( Domain ) )
-            {
-                try
-                {
-                    var meta = this.db.GetDomainDetails( Domain );
-                    this.DomainMetaData.Add( Domain, meta );
-                }
-                catch( Exception ex )
-                {
-                    MessageBox.Show( ex.Message, @"Could not retrieve domain meta data", MessageBoxButtons.OK );
-                }
-            }
-
-            var data = this.DomainMetaData[Domain];
+            var data = this.GetMetaDataForDomain( Domain );
+            if( data == null ) return;
 
             this.lblAttributeNameCount.Text = data.AttributeNameCount.ToString( "N0" );
             this.lblAttributeNameSizeBytes.Text = data.AttributeNamesSizeBytes.ToString( "N0" );
@@ -300,10 +294,12 @@ namespace SimpleDBAdmin
             this.lblPercentSize.Text = percent.ToString( "P5" );
         }
 
-        private void LoadQueryResults( List<SimpleDBItem> Items, string Domain )
+        private void LoadQueryResults( IEnumerable<SimpleDBItem> Items, string Domain )
         {
+            var items = Items.ToList();
+
             var data = new DataTable( "Query Results" );
-            var columns = ( from i in Items from p in i select p.Key ).Distinct().ToList();
+            var columns = ( from i in items from p in i select p.Key ).Distinct().ToList();
 
             // Find the domain node with the given name
             var node = this.domainList.Nodes.Cast<TreeNode>()
@@ -328,28 +324,9 @@ namespace SimpleDBAdmin
                 }
             }
 
-            var attrCount = new Dictionary<string, int>();
-            foreach( var i in Items )
-            {
-                foreach( var a in i.Select( m => m.Key ).Distinct() )
-                {
-                    var count = i.Count( m => m.Key.Equals( a, StringComparison.OrdinalIgnoreCase ) );
-                    if( attrCount.ContainsKey( a ) )
-                    {
-                        if( count > attrCount[a] )
-                        {
-                            attrCount[a] = count;
-                        }
-                    }
-                    else
-                    {
-                        attrCount.Add( a, count );
-                    }
-                }
-            }
-
-            // Add the columns to the result grid
-            data.Columns.Add( new DataColumn() );   // The hidden name column
+            // Get a list of attribute names and the maximum
+            // number of times they appear in any of the items.
+            var attrCount = ItemsToAttributeCount( items );
 
             // The DataTable class does not allow multiple columns with
             // the same name. SimpleDB domains do allow multiple attributes
@@ -357,30 +334,11 @@ namespace SimpleDBAdmin
             // Find the attributes that have more than one instance in all
             // the items. They need to have a number appended to the column
             // name.
-            foreach( var key in attrCount.Keys.OrderBy( m => m.ToLower() ) )
-            {
-                var count = attrCount[key];
-                if( count == 1 )
-                {
-                    var column = new DataColumn( key );
-                    column.ExtendedProperties.Add( "AttributeName", key );
-                    column.MaxLength = 1024;
-                    data.Columns.Add( column );
-                }
-                else
-                {
-                    for( var i = 1 ; i <= count ; i++ )
-                    {
-                        var column = new DataColumn( key + " (" + i + ")" );
-                        column.ExtendedProperties.Add( "AttributeName", key );
-                        column.MaxLength = 1024;
-                        data.Columns.Add( column );
-                    }
-                }
-            }
+            data.Columns.Add( new DataColumn() );   // The hidden name column
+            data.Columns.AddRange( AttributeCountToDataColumns( attrCount ).ToArray() );
 
             // Add the rows to the result grid
-            foreach( var item in Items )
+            foreach( var item in items )
             {
                 var row = data.NewRow();
                 row[0] = item.Name;
@@ -462,6 +420,78 @@ namespace SimpleDBAdmin
             }
         }
 
+        public void ExportDomain( string File, string RowDelim, string ColumnDelim, string TextQualifier, string EscapeChar )
+        {
+            if( this.db == null ) return;
+
+            // Validation
+            if( string.IsNullOrEmpty( File ) ) throw new ArgumentNullException( "File" );
+            if( string.IsNullOrEmpty( RowDelim ) ) throw new ArgumentNullException( "RowDelim" );
+            if( string.IsNullOrEmpty( ColumnDelim ) ) throw new ArgumentNullException( "ColumnDelim" );
+
+            var domain = GetSelectedDomainName();
+            if( string.IsNullOrEmpty( domain ) ) return;
+
+            var metaData = this.GetMetaDataForDomain( domain );
+            if( metaData == null ) return;
+
+            // Set up the progress bar
+            this.ExportDialog.progressBar.Value = 0;
+            this.ExportDialog.progressBar.Minimum = 0;
+            this.ExportDialog.progressBar.Maximum = metaData.ItemCount * 2;
+
+            // Pass 1: Read the data from AWS and write it out
+            // to a temporary file. Collect statistics on the
+            // items for the second pass.
+            var attributes = new Dictionary<string,int>();
+            using( var dataFile = System.IO.File.OpenWrite( File + ".data" ) )
+            {
+                foreach( var item in this.db.Select( "SELECT * FROM `" + domain + "`" ) )
+                {
+                    // Write the item to the file
+                    dataFile.WriteSimpleDBItem( item );
+
+                    // Add the attributes to the list
+                    attributes = ItemToAttributeCount( attributes, item );
+
+                    // Update the progress bar
+                    this.ExportDialog.progressBar.Value++;
+                }
+            }
+
+            // Pass 2: Read the data from the temporary file
+            // and convert it into desired format.
+            try
+            {
+                using( var csvFile = new StreamWriter( File ) )
+                using( var dataFile = System.IO.File.OpenRead( File + ".data" ) )
+                {
+                    csvFile.NewLine = RowDelim;
+
+                    // Write the headers to the file
+                    var headers = AttributeCountToUniqueNames( attributes ).OrderBy( m => m );
+                    csvFile.WriteDeliminatedString( headers, ColumnDelim, TextQualifier, EscapeChar );
+
+                    foreach( var item in dataFile.ReadSimpleDBItems() )
+                    {
+                        // Insert the missing attributes so the csv column will line up
+                        AddMissingAttributes( item, attributes );
+
+                        // Write the item to the file
+                        var values = item.OrderBy( m => m.Key ).ThenBy( m => m.Value, new EmptyStringsAreLast() ).Select( m => m.Value );
+                        csvFile.WriteDeliminatedString( values, ColumnDelim, TextQualifier, EscapeChar );
+
+                        // Update the progress bar
+                        this.ExportDialog.progressBar.Value++;
+                    }
+                }
+            }
+            catch( Exception ex )
+            {
+                MessageBox.Show( ex.Message, @"Could not export domain to file", MessageBoxButtons.OK, MessageBoxIcon.Error );
+            }
+        }
+
         #region Event Handlers
         private void runQuery_Click( object sender, EventArgs e )
         {
@@ -486,7 +516,7 @@ namespace SimpleDBAdmin
             // Set the default query or update the existing one
             if( string.IsNullOrEmpty( this.queryText.Text ) )
             {
-                this.queryText.Text = @"SELECT * FROM `" + domain + @"`";
+                this.queryText.Text = @"SELECT * FROM `" + domain + @"` LIMIT 50";
             }
             else
             {
@@ -511,7 +541,7 @@ namespace SimpleDBAdmin
             {
                 object name = row.Cells[0].Value, value = row.Cells[1].Value;
                 if( name == null || value == null ) continue;
-                kvp.Add( new KeyValuePair<string,string>( name.ToString(), value.ToString() ) );
+                kvp.Add( new KeyValuePair<string, string> { Key = name.ToString(), Value = value.ToString() } );
             }
 
             try
@@ -642,21 +672,17 @@ namespace SimpleDBAdmin
                 new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string,string>
-                    (
-                        dataSource.Columns[e.ColumnIndex].ExtendedProperties["AttributeName"].ToString(),
-                        this.resultGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()
-                    )
+                    {
+                        Key = dataSource.Columns[e.ColumnIndex].ExtendedProperties["AttributeName"].ToString(),
+                        Value = this.resultGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()
+                    }
                 }
             );
         }
 
         private void exportDomainToolStripMenuItem_Click( object sender, EventArgs e )
         {
-            new ExportDialog( "Test" )
-            {
-                StartPosition = FormStartPosition.CenterParent
-            }
-            .ShowDialog();
+            this.ExportDialog.ShowDialog();
         }
         #endregion
 
@@ -761,6 +787,112 @@ namespace SimpleDBAdmin
             {
                 r.GenerateIV();
                 return r.IV;
+            }
+        }
+        #endregion
+
+        #region Helpers
+        private DomainMetaData GetMetaDataForDomain( string Domain )
+        {
+            if( !this.DomainMetaData.ContainsKey( Domain ) )
+            {
+                try
+                {
+                    var meta = this.db.GetDomainDetails( Domain );
+                    this.DomainMetaData.Add( Domain, meta );
+                }
+                catch( Exception ex )
+                {
+                    MessageBox.Show( ex.Message, @"Could not retrieve domain meta data", MessageBoxButtons.OK );
+                    return null;
+                }
+            }
+
+            return this.DomainMetaData[Domain];
+        }
+
+        private static Dictionary<string, int> ItemToAttributeCount( Dictionary<string, int> AttrCount, SimpleDBItem Item )
+        {
+            return AttrCount
+                .Concat( Item.GetAttributeCounts() ).GroupBy( m => m.Key )
+                .ToDictionary( g => g.Key, g => g.Select( m => m.Value ).Max() );
+        }
+
+        private static Dictionary<string, int> ItemsToAttributeCount( IEnumerable<SimpleDBItem> Items )
+        {
+            // Get a list of attribute names and the maximum
+            // number of times they appear in any of the items.
+            return Items.Aggregate( new Dictionary<string, int>(), ItemToAttributeCount );
+        }
+
+        private static IEnumerable<string> AttributeCountToUniqueNames( Dictionary<string, int> AttrCount )
+        {
+            return
+            (
+                from kvp in AttrCount
+                from i in Enumerable.Range( 1, kvp.Value )
+                select kvp.Key + ( kvp.Value == 1 ? string.Empty : " (" + i + ")" )
+            );
+        }
+
+        private static IEnumerable<DataColumn> AttributeCountToDataColumns( Dictionary<string, int> AttrCount )
+        {
+            // The DataTable class does not allow multiple columns with
+            // the same name. SimpleDB domains do allow multiple attributes
+            // with the same name.
+            // Find the attributes that have more than one instance in all
+            // the items. They need to have a number appended to the column
+            // name.
+
+            return
+            (
+                from kvp in AttrCount
+                from i in Enumerable.Range( 1, kvp.Value )
+                select new DataColumn( kvp.Key + ( kvp.Value == 1 ? string.Empty : " (" + i + ")" ) )
+                {
+                    MaxLength = 1024,
+                    Caption = kvp.Key
+                }
+            );
+        }
+
+        private static IEnumerable<string> GetMissingAttributes( IEnumerable<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
+        {
+            return
+                from kvp in AttrCount
+                let c = kvp.Value - Item.Count( m => m.Key.Equals( kvp.Key ) )
+                from i in Enumerable.Range( 1, c )
+                select kvp.Key;
+        }
+
+        private static void AddMissingAttributes( List<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
+        {
+            Item.AddRange
+            (
+                from a in GetMissingAttributes( Item, AttrCount )
+                select new KeyValuePair<string, string>
+                {
+                    Key = a, Value = null
+                }
+            );
+        }
+
+        public class EmptyStringsAreLast : IComparer<string>
+        {
+            public int Compare( string x, string y )
+            {
+                if( String.IsNullOrEmpty( y ) && !String.IsNullOrEmpty( x ) )
+                {
+                    return -1;
+                }
+                else if( !String.IsNullOrEmpty( y ) && String.IsNullOrEmpty( x ) )
+                {
+                    return 1;
+                }
+                else
+                {
+                    return System.String.CompareOrdinal( x, y );
+                }
             }
         }
         #endregion
