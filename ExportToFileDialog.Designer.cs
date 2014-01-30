@@ -1,6 +1,6 @@
 ﻿namespace SimpleDBAdmin
 {
-    partial class ExportDialog
+    partial class ExportToFileDialog
     {
         /// <summary>
         /// Required designer variable.
@@ -261,7 +261,7 @@
             this.escapeCharacter.Text = "\"";
             this.escapeCharacter.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // ExportDialog
+            // ExportToFileDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -280,7 +280,7 @@
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
-            this.Name = "ExportDialog";
+            this.Name = "ExportToFileDialog";
             this.Text = "Exporting a Domain to a File";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();

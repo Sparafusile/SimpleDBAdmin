@@ -2,11 +2,11 @@
 
 namespace SimpleDBAdmin
 {
-    public partial class ExportDialog : Form
+    public partial class ExportToFileDialog : Form
     {
         private Main Main { get; set; }
 
-        public ExportDialog( Main Main )
+        public ExportToFileDialog( Main Main )
         {
             InitializeComponent();
             this.Main = Main;
@@ -17,8 +17,9 @@ namespace SimpleDBAdmin
         {
             var d = new SaveFileDialog
             {
-                CheckPathExists = true,
                 DefaultExt = "csv",
+                CheckPathExists = true,
+                Filter = @"CSV Files (*.csv)|*.csv|All Files (*.*)|*.*"
             };
 
             if( d.ShowDialog() != System.Windows.Forms.DialogResult.OK ) return;
@@ -58,7 +59,7 @@ namespace SimpleDBAdmin
                     break;
             }
 
-            this.Main.ExportDomain
+            this.Main.ExportDomainToFile
             (
                 this.targetFile.Text,
                 rowDelim,

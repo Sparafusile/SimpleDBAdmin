@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
 namespace SimpleDBAdmin
 {
-    public static class ImportExportHelpers
+    public static class ImportExport
     {
         private const string UnitSeparator = @"\x1F";
         private const string RecordSeparator = @"\x1E";
@@ -82,6 +83,69 @@ namespace SimpleDBAdmin
             }
         }
 
+        public static Dictionary<string, int> WriteToFile( this IEnumerable<SimpleDBItem> Items, string File )
+        {
+            var attributes = new Dictionary<string, int>();
+            using( var dataFile = System.IO.File.OpenWrite( File ) )
+            {
+                foreach( var item in Items )
+                {
+                    // Write the item to the file
+                    dataFile.WriteSimpleDBItem( item );
+
+                    // Add the attributes to the list
+                    attributes = ItemToAttributeCount( attributes, item );
+                }
+            }
+            return attributes;
+        }
+
+        public static Dictionary<string, int> ItemToAttributeCount( Dictionary<string, int> AttrCount, SimpleDBItem Item )
+        {
+            return AttrCount
+                .Concat( Item.GetAttributeCounts() ).GroupBy( m => m.Key )
+                .ToDictionary( g => g.Key, g => g.Select( m => m.Value ).Max() );
+        }
+
+        public static Dictionary<string, int> ItemsToAttributeCount( IEnumerable<SimpleDBItem> Items )
+        {
+            // Get a list of attribute names and the maximum
+            // number of times they appear in any of the items.
+            return Items.Aggregate( new Dictionary<string, int>(), ItemToAttributeCount );
+        }
+
+        public static IEnumerable<string> AttributeCountToUniqueNames( Dictionary<string, int> AttrCount )
+        {
+            return
+            (
+                from kvp in AttrCount
+                from i in Enumerable.Range( 1, kvp.Value )
+                select kvp.Key + ( kvp.Value == 1 ? string.Empty : " (" + i + ")" )
+            );
+        }
+
+        public static IEnumerable<string> GetMissingAttributes( IEnumerable<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
+        {
+            return
+                from kvp in AttrCount
+                let c = kvp.Value - Item.Count( m => m.Key.Equals( kvp.Key ) )
+                from i in Enumerable.Range( 1, c )
+                select kvp.Key;
+        }
+
+        public static void AddMissingAttributes( List<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
+        {
+            Item.AddRange
+            (
+                from a in GetMissingAttributes( Item, AttrCount )
+                select new KeyValuePair<string, string>
+                {
+                    Key = a,
+                    Value = null
+                }
+            );
+        }
+
         /// <summary>
         /// Combines a list of column data into a single line using the given delimiter.
         /// </summary>
@@ -91,7 +155,7 @@ namespace SimpleDBAdmin
         /// <param name="textQualifier">The text qualifier to surround the column data with.</param>
         /// <param name="escapeCharacter">The string used to escape a text qualifier within the column data.</param>
         /// <returns>A string representation of the joined column data.</returns>
-        public static void WriteDeliminatedString( this StreamWriter File, IEnumerable<string> columns, string delimiter = ",", string textQualifier = "\"", string escapeCharacter = "\\" )
+        public static void WriteDeliminatedString( this StreamWriter File, IEnumerable<string> columns, string delimiter = ",", string textQualifier = "\"", string escapeCharacter = "\"" )
         {
             if( columns == null ) return;
 

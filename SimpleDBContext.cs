@@ -45,9 +45,17 @@ namespace SimpleDBAdmin
             {
                 return
                     from m in this
-                    where m.Key.Equals( key, StringComparison.OrdinalIgnoreCase )
+                    where m.Key.Equals( key )
                     orderby m.Key, m.Value
                     select m.Value;
+            }
+        }
+
+        public string this[string key, int index]
+        {
+            get
+            {
+                return this[key].Skip( index ).FirstOrDefault();
             }
         }
 

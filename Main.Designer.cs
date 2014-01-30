@@ -79,12 +79,17 @@
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.createDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.exportDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshDomainListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.saveAWSPublicKeysToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAWSPrivateKeysToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cacheDomainSchemasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importExportToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importFileToDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importDatabaseToDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.exportDomainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportDomainToDatabaseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewHelpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -670,6 +675,7 @@
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.optionsToolStripMenuItem,
+            this.importExportToolStripMenuItem,
             this.helpToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
@@ -718,7 +724,6 @@
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.createDomainToolStripMenuItem,
-            this.exportDomainToolStripMenuItem,
             this.refreshDomainListToolStripMenuItem,
             this.toolStripSeparator1,
             this.saveAWSPublicKeysToolStripMenuItem,
@@ -734,13 +739,6 @@
             this.createDomainToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             this.createDomainToolStripMenuItem.Text = "Create Domain";
             this.createDomainToolStripMenuItem.Click += new System.EventHandler(this.CreateButton_Click);
-            // 
-            // exportDomainToolStripMenuItem
-            // 
-            this.exportDomainToolStripMenuItem.Name = "exportDomainToolStripMenuItem";
-            this.exportDomainToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
-            this.exportDomainToolStripMenuItem.Text = "Export Domain to File";
-            this.exportDomainToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToolStripMenuItem_Click);
             // 
             // refreshDomainListToolStripMenuItem
             // 
@@ -780,6 +778,49 @@
             this.cacheDomainSchemasToolStripMenuItem.Name = "cacheDomainSchemasToolStripMenuItem";
             this.cacheDomainSchemasToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             this.cacheDomainSchemasToolStripMenuItem.Text = "Cache Domain Schemas";
+            // 
+            // importExportToolStripMenuItem
+            // 
+            this.importExportToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.importFileToDomainToolStripMenuItem,
+            this.importDatabaseToDomainToolStripMenuItem,
+            this.toolStripSeparator4,
+            this.exportDomainToolStripMenuItem,
+            this.exportDomainToDatabaseToolStripMenuItem});
+            this.importExportToolStripMenuItem.Name = "importExportToolStripMenuItem";
+            this.importExportToolStripMenuItem.Size = new System.Drawing.Size(104, 20);
+            this.importExportToolStripMenuItem.Text = "Import && Export";
+            // 
+            // importFileToDomainToolStripMenuItem
+            // 
+            this.importFileToDomainToolStripMenuItem.Name = "importFileToDomainToolStripMenuItem";
+            this.importFileToDomainToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.importFileToDomainToolStripMenuItem.Text = "Import Domain from File";
+            // 
+            // importDatabaseToDomainToolStripMenuItem
+            // 
+            this.importDatabaseToDomainToolStripMenuItem.Name = "importDatabaseToDomainToolStripMenuItem";
+            this.importDatabaseToDomainToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.importDatabaseToDomainToolStripMenuItem.Text = "Import Domain from Database";
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(232, 6);
+            // 
+            // exportDomainToolStripMenuItem
+            // 
+            this.exportDomainToolStripMenuItem.Name = "exportDomainToolStripMenuItem";
+            this.exportDomainToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.exportDomainToolStripMenuItem.Text = "Export Domain to File";
+            this.exportDomainToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToolStripMenuItem_Click);
+            // 
+            // exportDomainToDatabaseToolStripMenuItem
+            // 
+            this.exportDomainToDatabaseToolStripMenuItem.Name = "exportDomainToDatabaseToolStripMenuItem";
+            this.exportDomainToDatabaseToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.exportDomainToDatabaseToolStripMenuItem.Text = "Export Domain to Database";
+            this.exportDomainToDatabaseToolStripMenuItem.Click += new System.EventHandler(this.exportDomainToDatabaseToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
@@ -921,7 +962,12 @@
         private System.Windows.Forms.Button refreshButton;
         private System.Windows.Forms.ToolStripMenuItem refreshDomainListToolStripMenuItem;
         private System.Windows.Forms.ImageList domainListImages;
+        private System.Windows.Forms.ToolStripMenuItem importExportToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem importFileToDomainToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem importDatabaseToDomainToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripMenuItem exportDomainToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportDomainToDatabaseToolStripMenuItem;
 
     }
 }

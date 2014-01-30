@@ -29,8 +29,6 @@ namespace SimpleDBAdmin
 
         private DomainFilterDialog FilterDialog { get; set; }
 
-        private ExportDialog ExportDialog { get; set; }
-
         private TreeNode HiddenNodes { get; set; }
 
         private SimpleDBContext db { get; set; }
@@ -41,10 +39,6 @@ namespace SimpleDBAdmin
             InitializeComponent();
             this.LoadSettings();
             this.FilterDialog = new DomainFilterDialog
-            {
-                StartPosition = FormStartPosition.CenterParent
-            };
-            this.ExportDialog = new ExportDialog( this )
             {
                 StartPosition = FormStartPosition.CenterParent
             };
@@ -326,7 +320,7 @@ namespace SimpleDBAdmin
 
             // Get a list of attribute names and the maximum
             // number of times they appear in any of the items.
-            var attrCount = ItemsToAttributeCount( items );
+            var attrCount = ImportExport.ItemsToAttributeCount( items );
 
             // The DataTable class does not allow multiple columns with
             // the same name. SimpleDB domains do allow multiple attributes
@@ -420,43 +414,29 @@ namespace SimpleDBAdmin
             }
         }
 
-        public void ExportDomain( string File, string RowDelim, string ColumnDelim, string TextQualifier, string EscapeChar )
+        public void ExportDomainToFile( string File, string RowDelim, string ColumnDelim, string TextQualifier, string EscapeChar, string Query = null )
         {
-            if( this.db == null ) return;
-
             // Validation
-            if( string.IsNullOrEmpty( File ) ) throw new ArgumentNullException( "File" );
-            if( string.IsNullOrEmpty( RowDelim ) ) throw new ArgumentNullException( "RowDelim" );
-            if( string.IsNullOrEmpty( ColumnDelim ) ) throw new ArgumentNullException( "ColumnDelim" );
+            if( this.db == null ) return;
 
             var domain = GetSelectedDomainName();
             if( string.IsNullOrEmpty( domain ) ) return;
 
-            var metaData = this.GetMetaDataForDomain( domain );
-            if( metaData == null ) return;
+            if( string.IsNullOrEmpty( File ) ) throw new ArgumentNullException( "File" );
+            if( string.IsNullOrEmpty( RowDelim ) ) throw new ArgumentNullException( "RowDelim" );
+            if( string.IsNullOrEmpty( ColumnDelim ) ) throw new ArgumentNullException( "ColumnDelim" );
 
-            // Set up the progress bar
-            this.ExportDialog.progressBar.Value = 0;
-            this.ExportDialog.progressBar.Minimum = 0;
-            this.ExportDialog.progressBar.Maximum = metaData.ItemCount * 2;
-
-            // Pass 1: Read the data from AWS and write it out
-            // to a temporary file. Collect statistics on the
-            // items for the second pass.
-            var attributes = new Dictionary<string,int>();
-            using( var dataFile = System.IO.File.OpenWrite( File + ".data" ) )
+            // Pass 1: Read the data from AWS and write it out to a temporary
+            // file. Collect statistics on the items for the second pass.
+            Dictionary<string, int> attributes;
+            try
             {
-                foreach( var item in this.db.Select( "SELECT * FROM `" + domain + "`" ) )
-                {
-                    // Write the item to the file
-                    dataFile.WriteSimpleDBItem( item );
-
-                    // Add the attributes to the list
-                    attributes = ItemToAttributeCount( attributes, item );
-
-                    // Update the progress bar
-                    this.ExportDialog.progressBar.Value++;
-                }
+                attributes = this.db.Select( Query ?? "SELECT * FROM `" + domain + "`" ).WriteToFile( File + ".data" );
+            }
+            catch( Exception ex )
+            {
+                MessageBox.Show( ex.Message, @"Could not retrieve data from doamin", MessageBoxButtons.OK, MessageBoxIcon.Error );
+                return;
             }
 
             // Pass 2: Read the data from the temporary file
@@ -468,21 +448,18 @@ namespace SimpleDBAdmin
                 {
                     csvFile.NewLine = RowDelim;
 
-                    // Write the headers to the file
-                    var headers = AttributeCountToUniqueNames( attributes ).OrderBy( m => m );
+                    // Write the headers to the file, order by key
+                    var headers = ImportExport.AttributeCountToUniqueNames( attributes ).OrderBy( m => m );
                     csvFile.WriteDeliminatedString( headers, ColumnDelim, TextQualifier, EscapeChar );
 
                     foreach( var item in dataFile.ReadSimpleDBItems() )
                     {
-                        // Insert the missing attributes so the csv column will line up
-                        AddMissingAttributes( item, attributes );
+                        // Insert the missing attributes so the csv columns will line up
+                        ImportExport.AddMissingAttributes( item, attributes );
 
-                        // Write the item to the file
+                        // Write the item to the file, order by key then value
                         var values = item.OrderBy( m => m.Key ).ThenBy( m => m.Value, new EmptyStringsAreLast() ).Select( m => m.Value );
                         csvFile.WriteDeliminatedString( values, ColumnDelim, TextQualifier, EscapeChar );
-
-                        // Update the progress bar
-                        this.ExportDialog.progressBar.Value++;
                     }
                 }
             }
@@ -682,7 +659,20 @@ namespace SimpleDBAdmin
 
         private void exportDomainToolStripMenuItem_Click( object sender, EventArgs e )
         {
-            this.ExportDialog.ShowDialog();
+            new ExportToFileDialog( this )
+            {
+                StartPosition = FormStartPosition.CenterParent
+            }
+            .ShowDialog();
+        }
+
+        private void exportDomainToDatabaseToolStripMenuItem_Click( object sender, EventArgs e )
+        {
+            new ExportToDatabaseDialog( this.db, this.GetSelectedDomainName() )
+            {
+                StartPosition = FormStartPosition.CenterParent
+            }
+            .ShowDialog();
         }
         #endregion
 
@@ -811,30 +801,6 @@ namespace SimpleDBAdmin
             return this.DomainMetaData[Domain];
         }
 
-        private static Dictionary<string, int> ItemToAttributeCount( Dictionary<string, int> AttrCount, SimpleDBItem Item )
-        {
-            return AttrCount
-                .Concat( Item.GetAttributeCounts() ).GroupBy( m => m.Key )
-                .ToDictionary( g => g.Key, g => g.Select( m => m.Value ).Max() );
-        }
-
-        private static Dictionary<string, int> ItemsToAttributeCount( IEnumerable<SimpleDBItem> Items )
-        {
-            // Get a list of attribute names and the maximum
-            // number of times they appear in any of the items.
-            return Items.Aggregate( new Dictionary<string, int>(), ItemToAttributeCount );
-        }
-
-        private static IEnumerable<string> AttributeCountToUniqueNames( Dictionary<string, int> AttrCount )
-        {
-            return
-            (
-                from kvp in AttrCount
-                from i in Enumerable.Range( 1, kvp.Value )
-                select kvp.Key + ( kvp.Value == 1 ? string.Empty : " (" + i + ")" )
-            );
-        }
-
         private static IEnumerable<DataColumn> AttributeCountToDataColumns( Dictionary<string, int> AttrCount )
         {
             // The DataTable class does not allow multiple columns with
@@ -852,27 +818,6 @@ namespace SimpleDBAdmin
                 {
                     MaxLength = 1024,
                     Caption = kvp.Key
-                }
-            );
-        }
-
-        private static IEnumerable<string> GetMissingAttributes( IEnumerable<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
-        {
-            return
-                from kvp in AttrCount
-                let c = kvp.Value - Item.Count( m => m.Key.Equals( kvp.Key ) )
-                from i in Enumerable.Range( 1, c )
-                select kvp.Key;
-        }
-
-        private static void AddMissingAttributes( List<KeyValuePair<string, string>> Item, Dictionary<string, int> AttrCount )
-        {
-            Item.AddRange
-            (
-                from a in GetMissingAttributes( Item, AttrCount )
-                select new KeyValuePair<string, string>
-                {
-                    Key = a, Value = null
                 }
             );
         }
