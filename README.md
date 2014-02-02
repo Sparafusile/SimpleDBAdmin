@@ -16,3 +16,9 @@ SimpleDBAdmin will allow you to:
   * Save your credentials in a secure way for quick access.
 
   * Export your domains to a delimited text file.
+
+  * Export your domains to a database:
+
+      - Microsoft SQL Server
+      - PostgreSQL
+      - SQLite
