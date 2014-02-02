@@ -8,6 +8,18 @@ using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 
+/*
+ * Microsoft SQL Server
+ * Microsoft Access
+ * PostgreSQL
+ * MySQL
+ * SQLite
+ * MongoDB
+ * SimpleDB
+ * DynamoDB
+ * Redis
+*/
+
 namespace SimpleDBAdmin
 {
     public partial class ExportToDatabaseDialog : Form
@@ -167,6 +179,19 @@ namespace SimpleDBAdmin
                                 list.Add( reader.GetString( 0 ) );
                     }
                     break;
+
+                case "SQLite":
+                    using( var cmd = this.SQLiteConnection.CreateCommand() )
+                    {
+                        cmd.CommandText = "SELECT * FROM \"ApiLogs_20140131182419\" LIMIT 0;";
+
+                        using( var reader = cmd.ExecuteReader() )
+                        {
+                            for( var i = 0 ; i < reader.FieldCount ; i++ )
+                                list.Add( reader.GetName( i ) );
+                        }
+                    }
+                    break;
             }
 
             return list;
@@ -197,14 +222,14 @@ namespace SimpleDBAdmin
             foreach( var c in sourceAttributes )
             {
                 // Add a label for the source attribute
-                this.columnMapTable.Controls.Add( new Label
+                var label = new Label
                 {
                     Tag = c,
                     Font = ControllFont,
                     Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                     Text = c.Source + ( c.IsDuplicate ? " (" + ( c.SourceIndex + 1 ) + ")" : string.Empty ),
-                },
-                0, this.columnMapTable.RowCount );
+                };
+                this.columnMapTable.Controls.Add( label, 0, this.columnMapTable.RowCount );
 
                 // Add a combo box for the destination column
                 var combo = new ComboBox
@@ -215,6 +240,7 @@ namespace SimpleDBAdmin
                     Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 };
                 combo.Items.AddRange( Array.ConvertAll( destinationColumns, m => (object)m ) );
+                combo.SelectedIndex = combo.Items.IndexOf( label.Text );
                 this.columnMapTable.Controls.Add( combo, 1, this.columnMapTable.RowCount );
 
                 this.columnMapTable.RowCount++;
@@ -233,12 +259,16 @@ namespace SimpleDBAdmin
             this.ColumnMap = new List<ColumnMapping>();
             for( var i = 1 ; i < this.columnMapTable.RowCount ; i++ )
             {
+                // Make sure the objects in the table are the correct type
                 var label = this.columnMapTable.GetControlFromPosition( 0, i ) as Label;
                 var combo = this.columnMapTable.GetControlFromPosition( 1, i ) as ComboBox;
                 if( label == null || combo == null || combo.SelectedItem == null ) continue;
 
+                // The 'Tag' property of the label is a ColumnMapping object set earlier
                 var m = label.Tag as ColumnMapping;
                 if( m == null ) continue;
+
+                // Add the mapping to the list
                 m.Destination = combo.SelectedItem.ToString();
                 this.ColumnMap.Add( m );
             }
@@ -264,9 +294,25 @@ namespace SimpleDBAdmin
 
             switch( this.ConnectionType )
             {
+                case "Microsoft Access":
                 case "Microsoft SQL Server":
                     CreateScript = "CREATE TABLE [" + TableName + "]\n(\n" +
-                        string.Join( ",\n", from c in mapping select "    [" + c.Destination + "] NVARCHAR(1024) NULL" ) + "\n);";
+                        string.Join( ",\n", from c in mapping select "    [" + c.Destination + "] NVARCHAR (1024) NULL" ) + "\n);";
+                    break;
+
+                case "PostgreSQL":
+                    CreateScript = "CREATE TABLE \"" + TableName + "\"\n(\n" +
+                        string.Join( ",\n", from c in mapping select "    \"" + c.Destination + "\" VARCHAR (1024) NULL" ) + "\n);";
+                    break;
+
+                case "SQLite":
+                    CreateScript = "CREATE TABLE \"" + TableName.Replace( ".", "_" ).Replace( "-", "_" ) + "\"\n(\n" +
+                        string.Join( ",\n", from c in mapping select "    \"" + c.Destination.Replace( ".", "_" ).Replace( "-", "_" ) + "\" VARCHAR (1024) NULL" ) + "\n);";
+                    break;
+
+                case "MySQL":
+                    CreateScript = "CREATE TABLE `" + TableName + "`\n(\n" +
+                        string.Join( ",\n", from c in mapping select "    `" + c.Destination + "` VARCHAR (1024) NULL" ) + "\n);";
                     break;
 
                 default:
@@ -280,13 +326,14 @@ namespace SimpleDBAdmin
         public int ImportToDestination()
         {
             var total = 0;
-            string schema = null, table = null, create = null;
+            string schema = null, table, create = null;
 
             if( this.tables.SelectedItem == null )
             {
                 if( !string.IsNullOrEmpty( this.createTable.Text ) )
                 {
                     create = this.createTable.Text;
+                    table = "UnknownTableName";
                 }
                 else
                 {
@@ -305,6 +352,7 @@ namespace SimpleDBAdmin
                 switch( this.ConnectionType )
                 {
                     case "Microsoft SQL Server":
+                        #region Microsoft SQL Server
                         using( var cmd = this.SqlServerConnection.CreateCommand() )
                         {
                             // Create the destination table
@@ -351,12 +399,104 @@ namespace SimpleDBAdmin
                             }
                         }
                         break;
+                        #endregion
 
                     case "PostgreSQL":
+                        #region PostgreSQL
                         using( var cmd = this.PostgreSQLConnection.CreateCommand() )
                         {
+                            // Create the destination table
+                            if( !string.IsNullOrEmpty( create ) )
+                            {
+                                cmd.CommandText = create;
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            // The default schema is dbo
+                            if( string.IsNullOrEmpty( schema ) ) schema = "public";
+
+                            // SQL Server allows you to insert up to 1,000 rows at a time.
+                            // This is the first part of the insert statement with the
+                            // destination schema, table, and column list.
+                            var sql = "INSERT INTO \"" + schema + "\".\"" + table + "\" ( " + string.Join( ", ", from kvp in this.ColumnMap select "\"" + kvp.Destination + "\"" ) + " ) VALUES\n";
+
+                            // Re-open the temp table and read the items saved in it
+                            using( var dataFile = System.IO.File.OpenRead( this.targetFile.Text ) )
+                            {
+                                var items = dataFile.ReadSimpleDBItems();
+
+                                // Read items from the file up to 1,000 at a time and build an insert statement to execute
+                                for( var subList = items.Take( 1000 ).ToList() ; subList.Count > 0 ; subList = items.Take( 1000 ).ToList() )
+                                {
+                                    // Build the part of the insert statement that has
+                                    // that values for each row to be inserted.
+                                    var values = string.Join
+                                    (
+                                        ",\n",
+                                        from item in subList
+                                        select "(" + string.Join
+                                        (
+                                            ", ",
+                                            from map in this.ColumnMap
+                                            select "'" + ( item[map.Source, map.SourceIndex] ?? string.Empty ).Replace( "'", "''" ) + "'"
+                                        ) + ")"
+                                    );
+
+                                    // Execute the insert statement
+                                    cmd.CommandText = sql + values + ";";
+                                    total += cmd.ExecuteNonQuery();
+                                }
+                            }
                         }
                         break;
+                        #endregion
+
+                    case "SQLite":
+                        #region SQLite
+                        using( var cmd = this.SQLiteConnection.CreateCommand() )
+                        {
+                            // Create the destination table
+                            if( !string.IsNullOrEmpty( create ) )
+                            {
+                                cmd.CommandText = create;
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            // SQL Server allows you to insert up to 1,000 rows at a time.
+                            // This is the first part of the insert statement with the
+                            // destination schema, table, and column list.
+                            var sql = "INSERT INTO \"" + table.Replace( ".", "_" ).Replace( "-", "_" ) + "\" ( " + string.Join( ", ", from kvp in this.ColumnMap select "\"" + kvp.Destination.Replace( ".", "_" ).Replace( "-", "_" ) + "\"" ) + " ) VALUES\n";
+
+                            // Re-open the temp table and read the items saved in it
+                            using( var dataFile = System.IO.File.OpenRead( this.targetFile.Text ) )
+                            {
+                                var items = dataFile.ReadSimpleDBItems();
+
+                                // Read items from the file up to 1,000 at a time and build an insert statement to execute
+                                for( var subList = items.Take( 1000 ).ToList() ; subList.Count > 0 ; subList = items.Take( 1000 ).ToList() )
+                                {
+                                    // Build the part of the insert statement that has
+                                    // that values for each row to be inserted.
+                                    var values = string.Join
+                                    (
+                                        ",\n",
+                                        from item in subList
+                                        select "(" + string.Join
+                                        (
+                                            ", ",
+                                            from map in this.ColumnMap
+                                            select "'" + ( item[map.Source, map.SourceIndex] ?? string.Empty ).Replace( "'", "''" ) + "'"
+                                        ) + ")"
+                                    );
+
+                                    // Execute the insert statement
+                                    cmd.CommandText = sql + values + ";";
+                                    total += cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                        break;
+                        #endregion
                 }
 
             }
@@ -438,7 +578,7 @@ namespace SimpleDBAdmin
         private void Export_Click( object sender, EventArgs e )
         {
             var total = this.ImportToDestination();
-            MessageBox.Show( total + @" records were successfully exported.", @"Successful Export", MessageBoxButtons.OK, MessageBoxIcon.Error );
+            MessageBox.Show( total + @" records were successfully exported.", @"Successful Export", MessageBoxButtons.OK, MessageBoxIcon.Information );
             this.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.Close();
         }
