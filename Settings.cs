@@ -38,7 +38,6 @@ namespace SimpleDBAdmin
     [XmlRoot( "dictionary" )]
     public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IXmlSerializable
     {
-        #region IXmlSerializable Members
         public System.Xml.Schema.XmlSchema GetSchema()
         {
             return null;
@@ -96,6 +95,5 @@ namespace SimpleDBAdmin
                 writer.WriteEndElement();
             }
         }
-        #endregion
     }
 }

@@ -342,7 +342,7 @@ namespace SimpleDBAdmin
 
                     if( attrCount[key] == 1 )
                     {
-                        row[key] = values[0];
+                        row[key] = values.Length == 0 ? string.Empty : values[0];
                     }
                     else
                     {
@@ -630,7 +630,7 @@ namespace SimpleDBAdmin
             var r = MessageBox.Show( @"Are you sure you wish to delete this row from the domain `" + domain + @"`?", @"Confirm Delete", MessageBoxButtons.YesNo );
             if( r == DialogResult.Yes )
             {
-                this.DeleteRowByName( e.Row.Cells["Name"].Value.ToString() );
+                this.DeleteRowByName( e.Row.Cells[0].Value.ToString() );
             }
             else
             {
@@ -669,6 +669,15 @@ namespace SimpleDBAdmin
         private void exportDomainToDatabaseToolStripMenuItem_Click( object sender, EventArgs e )
         {
             new ExportToDatabaseDialog( this.db, this.GetSelectedDomainName() )
+            {
+                StartPosition = FormStartPosition.CenterParent
+            }
+            .ShowDialog();
+        }
+
+        private void importFileToDomainToolStripMenuItem_Click( object sender, EventArgs e )
+        {
+            new ImportDialog( this.db, this.GetSelectedDomainName() )
             {
                 StartPosition = FormStartPosition.CenterParent
             }

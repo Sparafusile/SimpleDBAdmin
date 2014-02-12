@@ -796,6 +796,7 @@
             this.importFileToDomainToolStripMenuItem.Name = "importFileToDomainToolStripMenuItem";
             this.importFileToDomainToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
             this.importFileToDomainToolStripMenuItem.Text = "Import Domain from File";
+            this.importFileToDomainToolStripMenuItem.Click += new System.EventHandler(this.importFileToDomainToolStripMenuItem_Click);
             // 
             // importDatabaseToDomainToolStripMenuItem
             // 

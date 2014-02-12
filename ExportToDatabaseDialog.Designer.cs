@@ -175,7 +175,7 @@
             "Microsoft SQL Server",
             "PostgreSQL",
             "SQLite"});
-            this.databaseType.Location = new System.Drawing.Point(3, 62);
+            this.databaseType.Location = new System.Drawing.Point(3, 64);
             this.databaseType.Name = "databaseType";
             this.databaseType.Size = new System.Drawing.Size(485, 26);
             this.databaseType.TabIndex = 0;
@@ -285,7 +285,7 @@
             this.tableLayoutPanel2.SetColumnSpan(this.tables, 2);
             this.tables.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.tables.FormattingEnabled = true;
-            this.tables.Location = new System.Drawing.Point(3, 64);
+            this.tables.Location = new System.Drawing.Point(3, 62);
             this.tables.Name = "tables";
             this.tables.Size = new System.Drawing.Size(485, 26);
             this.tables.TabIndex = 0;
