@@ -284,7 +284,7 @@ namespace SimpleDBAdmin
                 this.lblTotalSize.Text = ( total / 1024.0 / 1024.0 / 1024.0 ).ToString( "N2" ) + @" GB";
             }
 
-            var percent = total / 1024.0 / 1024.0 / 1024.0 * 10;
+            var percent = total / ( 1024.0 * 1024.0 * 1024.0 * 10 );
             this.lblPercentSize.Text = percent.ToString( "P5" );
         }
 
